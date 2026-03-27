@@ -197,11 +197,4 @@ MIT License - see [LICENSE.md](LICENSE.md) for details
 ## Author
 
 **Lening Li**
-- Robotic Lab Advisor at Harvard University
-- Senior Software Engineer at Symbotic
-- Ph.D. in Robotics Engineering (WPI)
-
-## Related Projects
-
-- [PDDL-Parser](https://github.com/leelening/pddl-parser) - Parse PDDL to transition systems
-- [MulVAL](http://people.cs.ksu.edu/~xou/mulval/) - Attack graph generation
+- GitHub: [@leelening](https://github.com/leelening)
