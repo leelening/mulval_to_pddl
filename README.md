@@ -40,11 +40,11 @@ MulVAL must be installed to generate attack graphs:
 
 ```bash
 # Clone the repository
-git clone https://github.com/leelening/MulVAL-to-pddl.git
-cd MulVAL-to-pddl
+git clone https://github.com/leelening/mulval_to_pddl.git
+cd mulval_to_pddl
 
 # Install dependencies
-pip install pandas
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -73,7 +73,7 @@ This creates `domain.pddl` describing the attack actions and predicates.
 Generate the PDDL problem file:
 
 ```bash
-python create_problem.py ./example/VERTICES.CSV
+python create_prob.py ./example/VERTICES.CSV
 ```
 
 This creates `problem.pddl` describing the initial network state and attack goals.
@@ -90,7 +90,7 @@ Upload `domain.pddl` and `problem.pddl` to find attack paths.
 ```
 .
 ├── create_domain.py     # Generate PDDL domain file
-├── create_problem.py    # Generate PDDL problem file
+├── create_prob.py       # Generate PDDL problem file
 ├── example/             # Example MulVAL outputs
 │   ├── VERTICES.CSV     # Attack graph vertices
 │   └── ARCS.CSV         # Attack graph edges
@@ -148,7 +148,7 @@ source_id, target_id
 
 # 2. Convert to PDDL
 python create_domain.py example/VERTICES.CSV example/ARCS.CSV
-python create_problem.py example/VERTICES.CSV
+python create_prob.py example/VERTICES.CSV
 
 # 3. Solve attack planning problem
 # Upload domain.pddl and problem.pddl to http://editor.planning.domains/
@@ -161,7 +161,7 @@ This tool works with [PDDL-Parser](https://github.com/leelening/pddl-parser):
 ```bash
 # 1. Generate PDDL files
 python create_domain.py ...
-python create_problem.py ...
+python create_prob.py ...
 
 # 2. Parse to transition system
 python constructor.py domain.pddl problem.pddl

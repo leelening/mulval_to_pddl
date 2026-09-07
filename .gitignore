@@ -1,1 +1,16 @@
+# Byte-compiled / cache
 *.pyc
+__pycache__/
+
+# Editor / IDE
+.vscode/
+.idea/
+.ropeproject/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated PDDL output (rebuild with create_domain.py / create_prob.py)
+/domain.pddl
+/problem.pddl

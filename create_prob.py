@@ -19,7 +19,7 @@ if __name__ == '__main__':
         classified_vertices[type].add(tuple(v))
 
     temp = str()
-    for v in classified_vertices['LEAF']:
+    for v in sorted(classified_vertices['LEAF'], key=lambda v: v[0]):
         temp += '(' + format_string(v[1]) + ' s)\n'
 
     lines.append('(:init\n')
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # in order to have all the transitions, we need all OR nodes to be true
     lines.append('(:goal (and\n')
     temp = str()
-    for v in classified_vertices['OR']:
+    for v in sorted(classified_vertices['OR'], key=lambda v: v[0]):
         temp += '(' + format_string(v[1]) + ' s)\n'
     lines.append(temp)
     lines.append(')\n')
