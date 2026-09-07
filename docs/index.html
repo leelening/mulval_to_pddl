@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MulVAL to PDDL</title>
+<meta name="description" content="Convert MulVAL logical attack graphs to PDDL domain and problem files, entirely in your browser.">
+<style>
+  :root{
+    --bg:#fbfaf8; --panel:#ffffff; --ink:#1c1a17; --muted:#6b665e;
+    --line:#e5e1da; --accent:#b4432c; --accent-soft:#fdf1ee;
+    --code-bg:#f6f4f0; --ok:#2f6f4f; --shadow:0 1px 2px rgba(28,26,23,.05),0 8px 24px -12px rgba(28,26,23,.18);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#16150f; --panel:#1e1d17; --ink:#eceae4; --muted:#a09a8e;
+      --line:#332f27; --accent:#e0755a; --accent-soft:#2a1c17;
+      --code-bg:#121109; --ok:#7fc0a0; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16150f; --panel:#1e1d17; --ink:#eceae4; --muted:#a09a8e;
+    --line:#332f27; --accent:#e0755a; --accent-soft:#2a1c17;
+    --code-bg:#121109; --ok:#7fc0a0; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  header{border-bottom:1px solid var(--line);padding:44px 0 34px;margin-bottom:34px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--accent);margin:0 0 12px}
+  h1{margin:0 0 10px;font-size:34px;line-height:1.15;letter-spacing:-.02em;font-weight:650}
+  .lede{margin:0;color:var(--muted);max-width:62ch}
+  .lede code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);
+             padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+  .links{margin-top:18px;display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px}
+  .links a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+  .links a:hover{border-bottom-color:currentColor}
+
+  .grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:26px;align-items:start}
+  @media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:20px;box-shadow:var(--shadow)}
+  .card + .card{margin-top:18px}
+  h2{margin:0 0 4px;font-size:13px;letter-spacing:.09em;text-transform:uppercase;
+     color:var(--muted);font-weight:600;font-family:var(--mono)}
+  .hint{margin:0 0 16px;font-size:13px;color:var(--muted)}
+
+  .drop{border:1.5px dashed var(--line);border-radius:10px;padding:18px 16px;text-align:center;
+        cursor:pointer;transition:border-color .15s,background .15s;background:transparent}
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+  .drop.loaded{border-style:solid;border-color:var(--ok)}
+  .drop .name{font-family:var(--mono);font-size:12.5px;font-weight:600;display:block}
+  .drop .sub{font-size:12px;color:var(--muted);display:block;margin-top:3px}
+  .drop + .drop{margin-top:12px}
+
+  .row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  button{font:inherit;font-size:13.5px;padding:8px 15px;border-radius:8px;cursor:pointer;
+         border:1px solid var(--line);background:var(--panel);color:var(--ink);transition:.15s}
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:550}
+  button.primary:hover:not(:disabled){opacity:.88;color:#fff}
+  button:disabled{opacity:.42;cursor:not-allowed}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:1px;
+         background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-top:16px}
+  .stat{background:var(--panel);padding:11px 8px;text-align:center}
+  .stat b{display:block;font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em}
+  .stat span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:-4px 0 0}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;border-radius:0;
+       padding:9px 12px;color:var(--muted);font-family:var(--mono);font-size:12.5px}
+  .tab:hover{color:var(--ink);border-color:transparent}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  pre{margin:0;background:var(--code-bg);border:1px solid var(--line);border-top:none;
+      border-radius:0 0 10px 10px;padding:16px;overflow:auto;max-height:min(62vh,620px);
+      font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre;tab-size:2}
+  pre:empty::before{content:"Load VERTICES.CSV and ARCS.CSV, or try the example.";color:var(--muted);font-style:italic}
+  .out{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+       overflow:hidden;box-shadow:var(--shadow)}
+  .out .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;
+            padding:0 12px 0 4px;border-bottom:1px solid var(--line)}
+  .bar .acts{display:flex;gap:6px}
+  .bar button{padding:5px 11px;font-size:12.5px}
+  .err{color:var(--accent);font-size:13px;margin-top:12px;font-family:var(--mono)}
+  footer{border-top:1px solid var(--line);margin-top:44px;padding:22px 0 40px;
+         font-size:12.5px;color:var(--muted)}
+  footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Attack graphs &rarr; automated planning</p>
+    <h1>MulVAL to PDDL</h1>
+    <p class="lede">Drop MulVAL's <code>VERTICES.CSV</code> and <code>ARCS.CSV</code> below to generate
+      <code>domain.pddl</code> and <code>problem.pddl</code>. OR/LEAF facts become predicates, AND rule
+      nodes become STRIPS actions. Everything runs in your browser &mdash; no upload, no server.</p>
+    <div class="links">
+      <a href="https://github.com/leelening/mulval_to_pddl">Source on GitHub</a>
+      <a href="https://github.com/leelening/pddl-parser">pddl-parser</a>
+      <a href="http://people.cs.ksu.edu/~xou/mulval/">MulVAL</a>
+      <a href="http://editor.planning.domains/">PDDL editor</a>
+      <a href="https://arxiv.org/abs/2210.07385">Related paper</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>Input</h2>
+      <p class="hint">Both files come from a MulVAL run.</p>
+      <div class="drop" id="dropV" tabindex="0" role="button">
+        <span class="name" id="nameV">VERTICES.CSV</span>
+        <span class="sub" id="subV">click or drop &middot; id, fact, type, metric</span>
+      </div>
+      <div class="drop" id="dropA" tabindex="0" role="button">
+        <span class="name" id="nameA">ARCS.CSV</span>
+        <span class="sub" id="subA">click or drop &middot; source, target, label</span>
+      </div>
+      <input type="file" id="fileV" accept=".csv,text/csv" hidden>
+      <input type="file" id="fileA" accept=".csv,text/csv" hidden>
+      <div class="row">
+        <button class="primary" id="run" disabled>Convert</button>
+        <button id="demo">Load example</button>
+        <button id="reset">Clear</button>
+      </div>
+      <div class="err" id="err" hidden></div>
+      <div class="stats" id="stats" hidden>
+        <div class="stat"><b id="cLeaf">0</b><span>Leaf</span></div>
+        <div class="stat"><b id="cOr">0</b><span>Or</span></div>
+        <div class="stat"><b id="cAnd">0</b><span>And</span></div>
+        <div class="stat"><b id="cArc">0</b><span>Arcs</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>How the mapping works</h2>
+      <p class="hint" style="margin:0">
+        <b>LEAF</b> nodes are the attacker's given configuration facts &rarr; they become the
+        <code>:init</code> state.<br><br>
+        <b>OR</b> nodes are derived privileges &rarr; predicates, and their conjunction is the
+        <code>:goal</code>, so a plan must realize the whole reachable fact set rather than one path.<br><br>
+        <b>AND</b> nodes are MulVAL interaction rules &rarr; STRIPS actions. A rule's outgoing arcs
+        point at its premises (preconditions); its incoming arcs come from the fact it derives (effect).
+      </p>
+    </div>
+  </div>
+
+  <div class="out">
+    <div class="bar">
+      <div class="tabs">
+        <button class="tab active" data-t="domain">domain.pddl</button>
+        <button class="tab" data-t="problem">problem.pddl</button>
+      </div>
+      <div class="acts">
+        <button id="copy" disabled>Copy</button>
+        <button id="dl" disabled>Download</button>
+      </div>
+    </div>
+    <pre id="view"></pre>
+  </div>
+</div>
+</div>
+
+<footer class="wrap">
+  Client-side port of <code>create_domain.py</code> / <code>create_prob.py</code>.
+  Built by <a href="https://github.com/leelening">Lening Li</a> &middot; MIT License.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- CSV ---------- */
+  function parseCSV(text){
+    var rows=[],row=[],cur="",q=false,i,c;
+    text=text.replace(/^﻿/,"");
+    for(i=0;i<text.length;i++){
+      c=text[i];
+      if(q){
+        if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+        else cur+=c;
+      }else if(c==='"'){ q=true; }
+      else if(c===','){ row.push(cur); cur=""; }
+      else if(c==='\n'){ row.push(cur); cur=""; rows.push(row); row=[]; }
+      else if(c!=='\r'){ cur+=c; }
+    }
+    if(cur.length||row.length){ row.push(cur); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(f){ return f.trim()!==""; }); })
+               .map(function(r){ return r.map(function(f){ return f.trim(); }); });
+  }
+
+  /* ---------- format_string(), ported from common.py ---------- */
+  function fmt(s){
+    s=String(s);
+    s=s.replace(/ /g,"_").replace(/\(/g,"_").replace(/\)/g,"_")
+       .replace(/-/g,"_").replace(/'/g,"_").replace(/,/g,"_")
+       .replace(/\./g,"_");
+    s=s.replace(/_{2,}/g,"_");          // collapse fully (Python did two passes)
+    s=s.replace(/_+$/,"");
+    return s.toLowerCase();
+  }
+
+  /* ---------- conversion ---------- */
+  function build(vText,aText){
+    var vrows=parseCSV(vText), arows=parseCSV(aText);
+    if(!vrows.length) throw new Error("VERTICES.CSV is empty.");
+    if(!arows.length) throw new Error("ARCS.CSV is empty.");
+
+    var byId={}, leaf=[], or_=[], and_=[], seen={};
+    vrows.forEach(function(r,n){
+      if(r.length<3) throw new Error("VERTICES.CSV line "+(n+1)+": expected id, fact, type[, metric].");
+      var id=r[0].trim(), fact=r[1], type=r[2].trim().toUpperCase();
+      if(!/^\d+$/.test(id)) throw new Error("VERTICES.CSV line "+(n+1)+': "'+id+'" is not a numeric node id.');
+      if(byId[id]) throw new Error("VERTICES.CSV: duplicate node id "+id+".");
+      if(type!=="AND"&&type!=="OR"&&type!=="LEAF")
+        throw new Error("VERTICES.CSV line "+(n+1)+': unknown node type "'+r[2]+'" (expected AND, OR or LEAF).');
+      var p=fmt(fact);
+      if(type!=="AND"){
+        if(seen[p]&&seen[p]!==fact)
+          throw new Error('Predicate name collision: "'+fact+'" and "'+seen[p]+'" both slugify to '+p+".");
+        seen[p]=fact;
+      }
+      byId[id]={id:id,fact:fact,type:type,pred:p,order:n};
+      (type==="LEAF"?leaf:type==="OR"?or_:and_).push(byId[id]);
+    });
+
+    var arcs=arows.map(function(r,n){
+      if(r.length<2) throw new Error("ARCS.CSV line "+(n+1)+": expected source, target[, label].");
+      var s=r[0].trim(), t=r[1].trim();
+      if(!byId[s]) throw new Error("ARCS.CSV line "+(n+1)+": source node "+s+" not in VERTICES.CSV.");
+      if(!byId[t]) throw new Error("ARCS.CSV line "+(n+1)+": target node "+t+" not in VERTICES.CSV.");
+      return [s,t];
+    });
+
+    // domain.pddl
+    var preds=[];
+    leaf.concat(or_).sort(function(a,b){return a.order-b.order;})
+        .forEach(function(v){ if(preds.indexOf(v.pred)<0) preds.push(v.pred); });
+
+    var d="(define (domain attack_graph)\n  (:requirements :strips)\n\n  (:predicates\n";
+    preds.forEach(function(p){ d+="    ("+p+" ?x)\n"; });
+    d+="  )\n";
+
+    var orphan=[];
+    and_.forEach(function(v){
+      var pre=arcs.filter(function(a){return a[0]===v.id;}).map(function(a){return byId[a[1]].pred;});
+      var eff=arcs.filter(function(a){return a[1]===v.id;}).map(function(a){return byId[a[0]].pred;});
+      if(!pre.length||!eff.length) orphan.push(v.id);
+      d+="\n  (:action "+fmt(v.fact+"_"+v.id)+"\n    :parameters (?x)\n    :precondition (and\n";
+      pre.forEach(function(p){ d+="      ("+p+" ?x)\n"; });
+      d+="    )\n    :effect (and\n";
+      eff.forEach(function(p){ d+="      ("+p+" ?x)\n"; });
+      d+="    )\n  )\n";
+    });
+    d+=")\n";
+
+    // problem.pddl
+    var p="(define (problem pb1)\n  (:domain attack_graph)\n  (:objects s)\n\n  (:init\n";
+    leaf.forEach(function(v){ p+="    ("+v.pred+" s)\n"; });
+    p+="  )\n\n  (:goal (and\n";
+    or_.forEach(function(v){ p+="    ("+v.pred+" s)\n"; });
+    p+="  ))\n)\n";
+
+    return {domain:d, problem:p, orphan:orphan,
+            stats:{leaf:leaf.length,or:or_.length,and:and_.length,arc:arcs.length}};
+  }
+
+  /* ---------- example (MulVAL sample network) ---------- */
+  var EX_V=['1,"execCode(\'10.10.10.1\',someUser)","OR",0',
+    '2,"RULE 2 (remote exploit of a server program)","AND",0',
+    '3,"netAccess(\'10.10.10.1\',tcp,\'22\')","OR",0',
+    '4,"RULE 6 (direct network access)","AND",0',
+    '5,"hacl(internet,\'10.10.10.1\',tcp,\'22\')","LEAF",1',
+    '6,"attackerLocated(internet)","LEAF",1',
+    '7,"networkServiceInfo(\'10.10.10.1\',openssh,tcp,\'22\',someUser)","LEAF",1',
+    '8,"vulExists(\'10.10.10.1\',CVE_2008_5161,openssh,remoteExploit,privEscalation)","LEAF",1',
+    '9,"execCode(\'10.10.10.14\',someUser)","OR",0',
+    '10,"RULE 2 (remote exploit of a server program)","AND",0',
+    '11,"netAccess(\'10.10.10.14\',tcp,\'25\')","OR",0',
+    '12,"RULE 5 (multi-hop access)","AND",0',
+    '13,"hacl(\'10.10.10.1\',\'10.10.10.14\',tcp,\'25\')","LEAF",1',
+    '14,"RULE 6 (direct network access)","AND",0',
+    '15,"hacl(internet,\'10.10.10.14\',tcp,\'25\')","LEAF",1',
+    '16,"networkServiceInfo(\'10.10.10.14\',openssl,tcp,\'25\',someUser)","LEAF",1',
+    '17,"vulExists(\'10.10.10.14\',CVE_2016_0800,openssl,remoteExploit,privEscalation)","LEAF",1'].join("\n");
+  var EX_A=["2,3,-1","2,7,-1","2,8,-1","1,2,-1","4,5,-1","4,6,-1","3,4,-1",
+    "10,11,-1","10,16,-1","10,17,-1","9,10,-1","12,1,-1","12,13,-1","11,12,-1",
+    "14,15,-1","14,6,-1","11,14,-1"].join("\n");
+
+  /* ---------- wiring ---------- */
+  var $=function(id){return document.getElementById(id);};
+  var data={V:null,A:null}, out=null, tab="domain";
+
+  function setFile(k,name,text){
+    data[k]=text;
+    var d=$("drop"+k);
+    d.classList.add("loaded");
+    $("name"+k).textContent=name;
+    $("sub"+k).textContent=text.split("\n").filter(function(l){return l.trim();}).length+" rows loaded";
+    $("run").disabled=!(data.V&&data.A);
+  }
+  function fail(msg){
+    var e=$("err"); e.hidden=false; e.textContent=msg;
+    $("stats").hidden=true; $("view").textContent=""; out=null;
+    $("copy").disabled=$("dl").disabled=true;
+  }
+  function render(){
+    if(!out) return;
+    $("view").textContent=out[tab];
+    $("copy").disabled=$("dl").disabled=false;
+  }
+  function convert(){
+    $("err").hidden=true;
+    try{ out=build(data.V,data.A); }
+    catch(e){ fail(e.message); return; }
+    var s=out.stats;
+    $("cLeaf").textContent=s.leaf; $("cOr").textContent=s.or;
+    $("cAnd").textContent=s.and;   $("cArc").textContent=s.arc;
+    $("stats").hidden=false;
+    if(out.orphan.length){
+      var e=$("err"); e.hidden=false;
+      e.textContent="Warning: rule node(s) "+out.orphan.join(", ")+
+        " have no premises or no derived fact; their actions are degenerate.";
+    }
+    render();
+  }
+
+  ["V","A"].forEach(function(k){
+    var drop=$("drop"+k), input=$("file"+k);
+    drop.addEventListener("click",function(){input.click();});
+    drop.addEventListener("keydown",function(ev){
+      if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();input.click();}
+    });
+    ["dragenter","dragover"].forEach(function(t){
+      drop.addEventListener(t,function(ev){ev.preventDefault();drop.classList.add("over");});
+    });
+    ["dragleave","drop"].forEach(function(t){
+      drop.addEventListener(t,function(ev){ev.preventDefault();drop.classList.remove("over");});
+    });
+    drop.addEventListener("drop",function(ev){
+      var f=ev.dataTransfer.files[0]; if(f) read(f,k);
+    });
+    input.addEventListener("change",function(){
+      if(input.files[0]) read(input.files[0],k);
+    });
+  });
+  function read(f,k){
+    var r=new FileReader();
+    r.onload=function(){ setFile(k,f.name,r.result); };
+    r.onerror=function(){ fail("Could not read "+f.name+"."); };
+    r.readAsText(f);
+  }
+
+  $("run").addEventListener("click",convert);
+  $("demo").addEventListener("click",function(){
+    setFile("V","VERTICES.CSV (example)",EX_V);
+    setFile("A","ARCS.CSV (example)",EX_A);
+    convert();
+  });
+  $("reset").addEventListener("click",function(){
+    data={V:null,A:null}; out=null;
+    ["V","A"].forEach(function(k){
+      $("drop"+k).classList.remove("loaded");
+      $("name"+k).textContent=(k==="V"?"VERTICES":"ARCS")+".CSV";
+      $("sub"+k).textContent=k==="V"?"click or drop · id, fact, type, metric"
+                                    :"click or drop · source, target, label";
+      $("file"+k).value="";
+    });
+    $("run").disabled=true; $("err").hidden=true; $("stats").hidden=true;
+    $("view").textContent=""; $("copy").disabled=$("dl").disabled=true;
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(b){
+    b.addEventListener("click",function(){
+      Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(x){
+        x.classList.remove("active");
+      });
+      b.classList.add("active"); tab=b.dataset.t; render();
+    });
+  });
+
+  $("copy").addEventListener("click",function(){
+    if(!out) return;
+    var btn=$("copy"), old=btn.textContent;
+    function done(){ btn.textContent="Copied"; setTimeout(function(){btn.textContent=old;},1200); }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(out[tab]).then(done,function(){});
+    }else{
+      var ta=document.createElement("textarea");
+      ta.value=out[tab]; document.body.appendChild(ta); ta.select();
+      try{document.execCommand("copy");done();}catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+  $("dl").addEventListener("click",function(){
+    if(!out) return;
+    var b=new Blob([out[tab]],{type:"text/plain;charset=utf-8"});
+    var u=URL.createObjectURL(b), a=document.createElement("a");
+    a.href=u; a.download=tab+".pddl";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(u);},1000);
+  });
+})();
+</script>
+</body>
+</html>
