@@ -39,6 +39,9 @@
   .links{margin-top:18px;display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px}
   .links a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
   .links a:hover{border-bottom-color:currentColor}
+  .links a.sponsor{border:1px solid var(--line);border-radius:999px;padding:2px 11px;
+                   background:var(--accent-soft);margin-left:auto}
+  .links a.sponsor:hover{border-color:var(--accent)}
 
   .grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:26px;align-items:start}
   @media (max-width:860px){.grid{grid-template-columns:1fr}}
@@ -107,6 +110,7 @@
       <a href="http://people.cs.ksu.edu/~xou/mulval/">MulVAL</a>
       <a href="http://editor.planning.domains/">PDDL editor</a>
       <a href="https://arxiv.org/abs/2210.07385">Related paper</a>
+      <a class="sponsor" href="https://github.com/sponsors/leelening">&#9829; Sponsor</a>
     </div>
   </div>
 </header>
@@ -171,7 +175,8 @@
 
 <footer class="wrap">
   Client-side port of <code>create_domain.py</code> / <code>create_prob.py</code>.
-  Built by <a href="https://github.com/leelening">Lening Li</a> &middot; MIT License.
+  Built by <a href="https://github.com/leelening">Lening Li</a> &middot; MIT License &middot;
+  <a href="https://github.com/sponsors/leelening">Sponsor this project</a>.
 </footer>
 
 <script>
